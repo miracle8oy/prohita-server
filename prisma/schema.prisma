@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  name     String
+  roleId   Int    @default(1)
+  password String
+}
+
+model Master {
+  id        Int      @id @default(autoincrement())
+  name      String
+  status    Boolean  @default(true)
+  maxSize   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files     File[]
+}
+
+model File {
+  id              Int      @id @default(autoincrement())
+  clientName      String
+  email           String
+  phone           String
+  address         String
+  fileURL         String
+  publishDate     DateTime @db.Date
+  expiredDate     DateTime @db.Date
+  reminderSubject String
+  reminderBody    String
+  Master          Master?  @relation(fields: [masterId], references: [id])
+  masterId        Int?
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Candidate {
+  id          Int     @id @default(autoincrement())
+  email       String
+  name        String
+  description String?
+}

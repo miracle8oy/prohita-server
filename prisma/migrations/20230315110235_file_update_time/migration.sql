@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "File" ALTER COLUMN "publishDate" SET DATA TYPE DATE,
+ALTER COLUMN "expiredDate" SET DATA TYPE DATE;

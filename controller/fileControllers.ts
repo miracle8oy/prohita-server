@@ -226,11 +226,14 @@ export const getAllFile = async (
   res: express.Response
 ) => {
   try {
-    const { keyword, limit, pageNumber, category } = req.query;
+    const { keyword, limit, pageNumber, category, status } = req.query;
+
+    const today = new Date();
     if (
       typeof keyword !== "string" ||
       typeof pageNumber !== "string" ||
-      typeof limit !== "string"
+      typeof limit !== "string" ||
+      typeof status !== "string"
     ) {
       return badRequestResponse(
         res,
@@ -241,7 +244,13 @@ export const getAllFile = async (
     let files: any = [];
 
     if (!category) {
-      files = await searchWithoutCategory(keyword, pageNumber, limit);
+      files = await searchWithoutCategory(
+        keyword,
+        pageNumber,
+        limit,
+        status,
+        today
+      );
     }
     if (category) {
       files = await searchWithCategory(
@@ -249,17 +258,36 @@ export const getAllFile = async (
         pageNumber,
         limit,
         category,
-        res
+        res,
+        status,
+        today
       );
     }
-    const totalData = await prisma.file.count({
-      where: {
-        clientName: {
-          contains: keyword,
+    if (status === "true") {
+      const totalData = await prisma.file.count({
+        where: {
+          clientName: {
+            contains: keyword,
+          },
+          expiredDate: {
+            gte: today,
+          },
         },
-      },
-    });
-    return getSuccessResponse(res, files, { totalData });
+      });
+      return getSuccessResponse(res, files, { totalData });
+    } else {
+      const totalData = await prisma.file.count({
+        where: {
+          clientName: {
+            contains: keyword,
+          },
+          expiredDate: {
+            lte: today,
+          },
+        },
+      });
+      return getSuccessResponse(res, files, { totalData });
+    }
   } catch (err: any) {
     return errorResponse(res, err.message);
   }
@@ -315,31 +343,74 @@ export const getSingleFile = async (
 async function searchWithoutCategory(
   keyword: string,
   pageNumber: string,
-  limit: string
+  limit: string,
+  status: string,
+  today: Date
 ) {
-  const files = await prisma.file.findMany({
-    where: {
-      OR: [
-        {
-          clientName: {
-            contains: keyword,
+  if (status === "true") {
+    const files = await prisma.file.findMany({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+            expiredDate: {
+              gte: today,
+            },
           },
-        },
-        {
-          email: {
-            contains: keyword,
+          {
+            email: {
+              contains: keyword,
+            },
+            expiredDate: {
+              gte: today,
+            },
           },
+        ],
+      },
+      orderBy: [
+        {
+          expiredDate: "desc",
         },
       ],
-    },
-    skip: (Number(pageNumber) - 1) * Number(limit),
-    take: Number(limit),
-    include: {
-      Master: true,
-    },
-  });
-
-  return files;
+      skip: (Number(pageNumber) - 1) * Number(limit),
+      take: Number(limit),
+      include: {
+        Master: true,
+      },
+    });
+    return files;
+  } else {
+    const files = await prisma.file.findMany({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+            expiredDate: {
+              lte: today,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+            expiredDate: {
+              lte: today,
+            },
+          },
+        ],
+      },
+      skip: (Number(pageNumber) - 1) * Number(limit),
+      take: Number(limit),
+      include: {
+        Master: true,
+      },
+    });
+    return files;
+  }
 }
 
 async function searchWithCategory(
@@ -347,38 +418,96 @@ async function searchWithCategory(
   pageNumber: string,
   limit: string,
   category: any,
-  res: express.Response
+  res: express.Response,
+  status: string,
+  today: Date
 ) {
   if (typeof category !== "string") {
     return badRequestResponse(res, "Category type undefine");
   }
-  const files = await prisma.file.findMany({
-    where: {
-      OR: [
+  if (status === "true") {
+    const files = await prisma.file.findMany({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+            Master: {
+              name: category,
+            },
+            expiredDate: {
+              gte: today,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+            Master: {
+              name: category,
+            },
+            expiredDate: {
+              gte: today,
+            },
+          },
+        ],
+      },
+      orderBy: [
         {
-          clientName: {
-            contains: keyword,
-          },
-          Master: {
-            name: category,
-          },
-        },
-        {
-          email: {
-            contains: keyword,
-          },
-          Master: {
-            name: category,
-          },
+          expiredDate: "desc",
         },
       ],
-    },
-    skip: (Number(pageNumber) - 1) * Number(limit),
-    take: Number(limit),
-    include: {
-      Master: true,
-    },
-  });
+      skip: (Number(pageNumber) - 1) * Number(limit),
+      take: Number(limit),
+      include: {
+        Master: true,
+      },
+    });
 
-  return files;
+    return files;
+  } else {
+    {
+      const files = await prisma.file.findMany({
+        where: {
+          OR: [
+            {
+              clientName: {
+                contains: keyword,
+              },
+              Master: {
+                name: category,
+              },
+              expiredDate: {
+                lte: today,
+              },
+            },
+            {
+              email: {
+                contains: keyword,
+              },
+              Master: {
+                name: category,
+              },
+              expiredDate: {
+                lte: today,
+              },
+            },
+          ],
+        },
+        orderBy: [
+          {
+            expiredDate: "desc",
+          },
+        ],
+        skip: (Number(pageNumber) - 1) * Number(limit),
+        take: Number(limit),
+        include: {
+          Master: true,
+        },
+      });
+
+      return files;
+    }
+  }
 }

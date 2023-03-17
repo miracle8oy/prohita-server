@@ -1,76 +1,25 @@
 import { PrismaClient } from "@prisma/client";
 import express from "express";
-import {
-  badRequestResponse,
-  mutationSuccessResponse,
-  errorResponse,
-  getSuccessResponse,
-} from "../utility/httpResponse";
+import { errorResponse, getSuccessResponse } from "../utility/httpResponse";
 import { sendEmail } from "../utility/emailServices";
 const SMTP_USER = process.env.SMPT_USER;
 
 const prisma = new PrismaClient();
-
-export const createCandidate = async (
-  req: express.Request,
-  res: express.Response
-) => {
-  const { name, email, description } = req.body;
-
-  try {
-    if (!name || !email) {
-      return badRequestResponse(res, "Name and email field required");
-    }
-
-    const candidate = await prisma.candidate.create({
-      data: {
-        description,
-        email,
-        name,
-      },
-    });
-
-    return mutationSuccessResponse(res, candidate);
-  } catch (err: any) {
-    return errorResponse(res, err.message);
-  }
-};
-
-export const getAllCandidate = async (
-  req: express.Request,
-  res: express.Response
-) => {
-  try {
-    const candidates = await prisma.candidate.findMany();
-    return getSuccessResponse(res, candidates);
-  } catch (err: any) {
-    return errorResponse(res, err.message);
-  }
-};
-
-export const getfileDocument = async (
-  req: express.Request,
-  res: express.Response
-) => {
-  try {
-    const candidates = await prisma.candidate.findMany();
-    return getSuccessResponse(res, candidates);
-  } catch (err: any) {
-    return errorResponse(res, err.message);
-  }
-};
 
 export const getEmailData = async (
   req: express.Request,
   res: express.Response
 ) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
-    const isoDate = new Date(today).toISOString();
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
     const expiredFiles = await prisma.file.findMany({
       where: {
-        expiredDate: isoDate,
+        expiredDate: {
+          gte: yesterday,
+          lte: today,
+        },
       },
     });
 
@@ -95,7 +44,7 @@ export const getEmailData = async (
         })
         .catch((err) => console.log(err.message));
     });
-    res.end();
+    return getSuccessResponse(res, expiredFiles);
   } catch (err: any) {
     return errorResponse(res, err.message);
   }
@@ -111,15 +60,46 @@ export const getReport = async (
     today.getTime() - 24 * 60 * 60 * 1000 * Number(fromDay)
   );
   try {
-    const yesterday = (new Date().getDate() - 1).toLocaleString;
     const reports = await prisma.report.findMany({
       where: {
         createdAt: {
           gte: startDate,
         },
       },
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+      ],
     });
     return getSuccessResponse(res, reports);
+  } catch (err: any) {
+    return errorResponse(res, err.message);
+  }
+};
+
+export const getReportDashboard = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  try {
+    const today = new Date();
+    const totalFile = await prisma.file.count();
+    const expiredFile = await prisma.file.count({
+      where: {
+        expiredDate: {
+          lte: today,
+        },
+      },
+    });
+    const unexpiredFile = await prisma.file.count({
+      where: {
+        expiredDate: {
+          gte: today,
+        },
+      },
+    });
+    return getSuccessResponse(res, { totalFile, expiredFile, unexpiredFile });
   } catch (err: any) {
     return errorResponse(res, err.message);
   }

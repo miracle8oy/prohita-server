@@ -7,10 +7,11 @@ import {
   sendResetPassword,
   resetPassword,
 } from "../controller/userControllers";
+import { verifyAdminToken } from "../middleware/verifyToken";
 
 const router = express.Router();
 
-router.post("/user", createUser);
+router.post("/user", verifyAdminToken, createUser);
 router.post("/login", login);
 router.post("/refresh", refresh);
 router.get("/user", getAllUsers);

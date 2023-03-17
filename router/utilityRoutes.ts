@@ -1,16 +1,15 @@
 import express from "express";
 import {
-  createCandidate,
-  getAllCandidate,
   getEmailData,
   getReport,
+  getReportDashboard,
 } from "../controller/utilityControllers";
+import { verifyAdminToken } from "../middleware/verifyToken";
 
 const router = express.Router();
 
-router.post("/candidate", createCandidate);
-router.get("/candidate", getAllCandidate);
 router.get("/email", getEmailData);
-router.get("/report", getReport);
+router.get("/report", verifyAdminToken, getReport);
+router.get("/report-dashboard", verifyAdminToken, getReportDashboard);
 
 export default router;

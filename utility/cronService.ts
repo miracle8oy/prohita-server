@@ -9,12 +9,15 @@ const prisma = new PrismaClient();
 
 function emailCron() {
   schedule.scheduleJob("7 * * *", async function () {
-    const today = new Date().toISOString().split("T")[0];
-    const isoDate = new Date(today).toISOString();
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
     const expiredFiles = await prisma.file.findMany({
       where: {
-        expiredDate: isoDate,
+        expiredDate: {
+          gte: yesterday,
+          lte: today,
+        },
       },
     });
 
@@ -40,13 +43,16 @@ function emailCron() {
 }
 
 function testingEmailCron() {
-  schedule.scheduleJob("*/10 * * * *", async function () {
-    const today = new Date().toISOString().split("T")[0];
-    const isoDate = new Date(today).toISOString();
+  schedule.scheduleJob("*/20 * * * *", async function () {
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
     const expiredFiles = await prisma.file.findMany({
       where: {
-        expiredDate: isoDate,
+        expiredDate: {
+          gte: yesterday,
+          lte: today,
+        },
       },
     });
 

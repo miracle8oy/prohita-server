@@ -1,10 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import express from "express";
 import { RolesType } from "../utility/dataInterface";
-import {
-  sendEmail,
-  resetPasswordEmailTemplate,
-} from "../utility/emailServices";
+import { sendEmail } from "../utility/emailServices";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {
@@ -15,10 +12,11 @@ import {
   mutationSuccessResponse,
 } from "../utility/httpResponse";
 
-const ACCESS_TOKEN_SECRET = "mrc200";
-const REFRESH_TOKEN_SECRET = "mrc201";
-const RESET_PASSWORD_SECRET = "mrc202";
-const BASE_URL = "http://localhost:3000";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL!;
+const SMTP_USER = process.env.SMPT_USER!;
+const RECOVERY_EMAIL = process.env.RECOVERY_EMAIL!;
 
 const prisma = new PrismaClient();
 
@@ -39,10 +37,6 @@ async function createRefreshToken(email: string) {
     REFRESH_TOKEN_SECRET,
     { expiresIn: "7d" }
   );
-}
-
-async function createResetToken(email: string) {
-  return jwt.sign({ email }, RESET_PASSWORD_SECRET, { expiresIn: 7200 });
 }
 
 export const createUser = async (
@@ -100,14 +94,11 @@ export const login = async (req: express.Request, res: express.Response) => {
     const accessToken = await createAccesToken(userData.email);
     const refreshToken = await createRefreshToken(userData.email);
 
-    // res.cookie("refreshToken", refreshToken, {
-    //   httpOnly: true,
-    //   sameSite: "none",
-    //   secure: true,
-    //   maxAge: 7 * 24 * 60 * 60 * 1000,
-    // });
-
-    return mutationSuccessResponse(res, { accessToken, refreshToken });
+    return mutationSuccessResponse(res, {
+      accessToken,
+      refreshToken,
+      name: userData.name,
+    });
   } catch (err: any) {
     return errorResponse(res, err.message);
   }
@@ -153,32 +144,26 @@ export const sendResetPassword = async (
   req: express.Request,
   res: express.Response
 ) => {
-  const { email } = req.body;
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      return badRequestResponse(res, "User email doesn't exist");
-    }
-
+    const accessToken = (await createAccesToken(RECOVERY_EMAIL))
+      .replace(".", "DOT")
+      .replace(".", "DOT");
     const resetPasswordURL =
-      BASE_URL + "/reset-password/" + (await createResetToken(user.email));
+      FRONTEND_BASE_URL + "/reset-password/" + accessToken;
 
-    const tempate = resetPasswordEmailTemplate("Mirace Corp", resetPasswordURL);
     const mailOptions = {
-      from: "testing@ittsuexpo.com",
-      to: "miracle8oys@gmail.com",
-      subject: "This email sent from server",
-      html: tempate,
+      from: SMTP_USER!,
+      to: RECOVERY_EMAIL!,
+      subject: "RESET PASSWORD",
+      html: resetPasswordURL,
     };
 
     await sendEmail(mailOptions);
 
-    res.end();
+    return mutationSuccessResponse(
+      res,
+      "Reset password url successfully send to recovery email"
+    );
   } catch (err: any) {
     return errorResponse(res, err.message);
   }
@@ -189,34 +174,36 @@ export const resetPassword = async (
   res: express.Response
 ) => {
   const { resetToken } = req.params;
-  const { newPassword } = req.body;
+  const { newEmail, newPassword } = req.body;
   try {
-    if (!newPassword) {
+    if (!newPassword || !newEmail) {
       return badRequestResponse(res, "New password field required");
     }
-
+    const accessToken = resetToken.replace("DOT", ".").replace("DOT", ".");
     jwt.verify(
-      resetToken,
-      RESET_PASSWORD_SECRET,
+      accessToken,
+      ACCESS_TOKEN_SECRET,
       async (err: any, decode: any) => {
         if (err) {
-          return badRequestResponse(res, err.message);
+          return res.status(401).send({
+            status: false,
+            message: err,
+          });
         }
 
         const encryptedPassword = await bcrypt.hash(newPassword, 11);
-
-        const user = await prisma.user.update({
-          where: {
-            email: decode.email,
-          },
+        const user = await prisma.user.create({
           data: {
+            email: newEmail,
             password: encryptedPassword,
+            name: "ADMIN",
+            roleId: roles.admin,
           },
         });
 
         return mutationSuccessResponse(
           res,
-          "Successfully update password for " + user.email
+          "Successfully create account for " + user.email
         );
       }
     );

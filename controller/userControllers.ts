@@ -1,7 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import express from "express";
 import { RolesType } from "../utility/dataInterface";
-import { sendEmail } from "../utility/emailServices";
+import {
+  resetPasswordEmailTemplate,
+  sendEmail,
+} from "../utility/emailServices";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {
@@ -151,11 +154,13 @@ export const sendResetPassword = async (
     const resetPasswordURL =
       FRONTEND_BASE_URL + "/reset-password/" + accessToken;
 
+    const emailBody = resetPasswordEmailTemplate("Prohita", resetPasswordURL);
+
     const mailOptions = {
       from: SMTP_USER!,
       to: RECOVERY_EMAIL!,
       subject: "RESET PASSWORD",
-      html: resetPasswordURL,
+      html: emailBody,
     };
 
     await sendEmail(mailOptions);

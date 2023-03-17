@@ -7,7 +7,6 @@ import {
   errorResponse,
   getSuccessResponse,
 } from "../utility/httpResponse";
-import { ParsedUrlQuery } from "querystring";
 
 const prisma = new PrismaClient();
 
@@ -233,27 +232,30 @@ export const getAllFile = async (
       typeof keyword !== "string" ||
       typeof pageNumber !== "string" ||
       typeof limit !== "string" ||
-      typeof status !== "string"
+      typeof status !== "string" ||
+      typeof category !== "string"
     ) {
       return badRequestResponse(
         res,
-        "Keyword, pageNumber or limit query undefine"
+        "Keyword, pageNumber, status or limit query undefine"
       );
     }
 
-    let files: any = [];
-
     if (!category) {
-      files = await searchWithoutCategory(
+      const files = await searchWithoutCategory(
         keyword,
         pageNumber,
         limit,
         status,
         today
       );
+
+      const totalData = await countDataWithoutCategory(status, keyword, today);
+
+      return getSuccessResponse(res, files, { totalData });
     }
     if (category) {
-      files = await searchWithCategory(
+      const files = await searchWithCategory(
         keyword,
         pageNumber,
         limit,
@@ -262,30 +264,12 @@ export const getAllFile = async (
         status,
         today
       );
-    }
-    if (status === "true") {
-      const totalData = await prisma.file.count({
-        where: {
-          clientName: {
-            contains: keyword,
-          },
-          expiredDate: {
-            gte: today,
-          },
-        },
-      });
-      return getSuccessResponse(res, files, { totalData });
-    } else {
-      const totalData = await prisma.file.count({
-        where: {
-          clientName: {
-            contains: keyword,
-          },
-          expiredDate: {
-            lte: today,
-          },
-        },
-      });
+      const totalData = await countDataWithCategory(
+        status,
+        keyword,
+        today,
+        category
+      );
       return getSuccessResponse(res, files, { totalData });
     }
   } catch (err: any) {
@@ -381,7 +365,8 @@ async function searchWithoutCategory(
       },
     });
     return files;
-  } else {
+  }
+  if (status === "false") {
     const files = await prisma.file.findMany({
       where: {
         OR: [
@@ -403,6 +388,39 @@ async function searchWithoutCategory(
           },
         ],
       },
+      orderBy: [
+        {
+          expiredDate: "desc",
+        },
+      ],
+      skip: (Number(pageNumber) - 1) * Number(limit),
+      take: Number(limit),
+      include: {
+        Master: true,
+      },
+    });
+    return files;
+  } else {
+    const files = await prisma.file.findMany({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+          },
+        ],
+      },
+      orderBy: [
+        {
+          expiredDate: "desc",
+        },
+      ],
       skip: (Number(pageNumber) - 1) * Number(limit),
       take: Number(limit),
       include: {
@@ -466,6 +484,46 @@ async function searchWithCategory(
     });
 
     return files;
+  }
+  if (status === "false") {
+    const files = await prisma.file.findMany({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+            expiredDate: {
+              lte: today,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+
+            expiredDate: {
+              lte: today,
+            },
+          },
+        ],
+        Master: {
+          name: category,
+        },
+      },
+      orderBy: [
+        {
+          expiredDate: "desc",
+        },
+      ],
+      skip: (Number(pageNumber) - 1) * Number(limit),
+      take: Number(limit),
+      include: {
+        Master: true,
+      },
+    });
+
+    return files;
   } else {
     {
       const files = await prisma.file.findMany({
@@ -475,25 +533,16 @@ async function searchWithCategory(
               clientName: {
                 contains: keyword,
               },
-              Master: {
-                name: category,
-              },
-              expiredDate: {
-                lte: today,
-              },
             },
             {
               email: {
                 contains: keyword,
               },
-              Master: {
-                name: category,
-              },
-              expiredDate: {
-                lte: today,
-              },
             },
           ],
+          Master: {
+            name: category,
+          },
         },
         orderBy: [
           {
@@ -508,6 +557,158 @@ async function searchWithCategory(
       });
 
       return files;
+    }
+  }
+}
+
+async function countDataWithoutCategory(
+  status: string,
+  keyword: string,
+  today: Date
+) {
+  if (status === "true") {
+    const totalData = await prisma.file.count({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+          },
+        ],
+        expiredDate: {
+          gte: today,
+        },
+      },
+    });
+    return totalData;
+  }
+  if (status === "false") {
+    const totalData = await prisma.file.count({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+          },
+        ],
+        expiredDate: {
+          lte: today,
+        },
+      },
+    });
+    return totalData;
+  } else {
+    {
+      const totalData = await prisma.file.count({
+        where: {
+          OR: [
+            {
+              clientName: {
+                contains: keyword,
+              },
+            },
+            {
+              email: {
+                contains: keyword,
+              },
+            },
+          ],
+        },
+      });
+      return totalData;
+    }
+  }
+}
+
+async function countDataWithCategory(
+  status: string,
+  keyword: string,
+  today: Date,
+  category: string
+) {
+  if (status === "true") {
+    const totalData = await prisma.file.count({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+          },
+        ],
+        Master: {
+          name: category,
+        },
+        expiredDate: {
+          gte: today,
+        },
+      },
+    });
+    return totalData;
+  }
+  if (status === "false") {
+    const totalData = await prisma.file.count({
+      where: {
+        OR: [
+          {
+            clientName: {
+              contains: keyword,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+            },
+          },
+        ],
+        Master: {
+          name: category,
+        },
+        expiredDate: {
+          lte: today,
+        },
+      },
+    });
+    return totalData;
+  } else {
+    {
+      const totalData = await prisma.file.count({
+        where: {
+          OR: [
+            {
+              clientName: {
+                contains: keyword,
+              },
+            },
+            {
+              email: {
+                contains: keyword,
+              },
+            },
+          ],
+          Master: {
+            name: category,
+          },
+        },
+      });
+      return totalData;
     }
   }
 }

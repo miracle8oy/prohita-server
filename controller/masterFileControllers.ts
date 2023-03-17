@@ -89,6 +89,11 @@ export const getAllMasterFile = async (
             contains: keyword,
           },
         },
+        orderBy: [
+          {
+            createdAt: "desc",
+          },
+        ],
         take: Number(limit),
       });
       return getSuccessResponse(res, masterFiles);
@@ -99,6 +104,11 @@ export const getAllMasterFile = async (
             contains: keyword,
           },
         },
+        orderBy: [
+          {
+            createdAt: "desc",
+          },
+        ],
         take: Number(limit),
       });
       return getSuccessResponse(res, masterFiles);

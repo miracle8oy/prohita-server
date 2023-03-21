@@ -81,38 +81,31 @@ export const getAllMasterFile = async (
     if (typeof keyword !== "string") {
       return badRequestResponse(res, "Keyword query undefine");
     }
+    let masterFileStatus;
+
     if (status === "true") {
-      const masterFiles = await prisma.master.findMany({
-        where: {
-          status: true,
-          name: {
-            contains: keyword,
-          },
-        },
-        orderBy: [
-          {
-            createdAt: "desc",
-          },
-        ],
-        take: Number(limit),
-      });
-      return getSuccessResponse(res, masterFiles);
-    } else {
-      const masterFiles = await prisma.master.findMany({
-        where: {
-          name: {
-            contains: keyword,
-          },
-        },
-        orderBy: [
-          {
-            createdAt: "desc",
-          },
-        ],
-        take: Number(limit),
-      });
-      return getSuccessResponse(res, masterFiles);
+      masterFileStatus = true;
     }
+
+    if (status === "false") {
+      masterFileStatus = false;
+    }
+
+    const masterFiles = await prisma.master.findMany({
+      where: {
+        status: masterFileStatus,
+        name: {
+          contains: keyword,
+        },
+      },
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+      ],
+      take: Number(limit),
+    });
+    return getSuccessResponse(res, masterFiles);
   } catch (err: any) {
     return errorResponse(res, err.message);
   }

@@ -19,6 +19,9 @@ function emailCron() {
           lte: today,
         },
       },
+      include: {
+        Client: true,
+      },
     });
 
     expiredFiles.forEach(async (i) => {
@@ -26,14 +29,14 @@ function emailCron() {
         subject: i.reminderSubject,
         html: i.reminderBody,
         from: SMTP_USER!,
-        to: i.email,
+        to: `${i.Client!.firstEmail}, ${i.Client!.secondEmail}`,
       };
 
       await sendEmail(mailOptions)
         .then(async () => {
           await prisma.report.create({
             data: {
-              description: `Berhasil mengirim notifikasi kepada ${i.email}`,
+              description: `Berhasil mengirim notifikasi kepada ${i.Client?.clientName}`,
             },
           });
         })
@@ -54,6 +57,9 @@ function testingEmailCron() {
           lte: today,
         },
       },
+      include: {
+        Client: true,
+      },
     });
 
     expiredFiles.forEach(async (i) => {
@@ -61,14 +67,14 @@ function testingEmailCron() {
         subject: i.reminderSubject,
         html: i.reminderBody,
         from: SMTP_USER!,
-        to: i.email,
+        to: `${i.Client!.firstEmail}, ${i.Client!.secondEmail}`,
       };
 
       await sendEmail(mailOptions)
         .then(async () => {
           await prisma.report.create({
             data: {
-              description: `Berhasil mengirim notifikasi kepada ${i.email}`,
+              description: `Berhasil mengirim notifikasi kepada ${i.Client?.clientName}`,
             },
           });
         })

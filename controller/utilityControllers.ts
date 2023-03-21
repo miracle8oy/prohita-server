@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import express from "express";
-import { errorResponse, getSuccessResponse } from "../utility/httpResponse";
+import {
+  badRequestResponse,
+  errorResponse,
+  getSuccessResponse,
+} from "../utility/httpResponse";
 import { sendEmail } from "../utility/emailServices";
 const SMTP_USER = process.env.SMPT_USER;
 
@@ -21,6 +25,9 @@ export const getEmailData = async (
           lte: today,
         },
       },
+      include: {
+        Client: true,
+      },
     });
 
     const notification: Array<string> = [];
@@ -30,17 +37,12 @@ export const getEmailData = async (
         subject: i.reminderSubject,
         html: i.reminderBody,
         from: SMTP_USER!,
-        to: i.email,
+        to: "wijayakusumasandi@gmail.com, undefine",
       };
 
       await sendEmail(mailOptions)
-        .then(() => {
-          notification.push(
-            "Berhasil mengirim notifikasi kepada: " +
-              i.clientName +
-              " pada: " +
-              today
-          );
+        .then((res) => {
+          console.log(res);
         })
         .catch((err) => console.log(err.message));
     });
@@ -54,11 +56,31 @@ export const getReport = async (
   req: express.Request,
   res: express.Response
 ) => {
-  const { fromDay } = req.query;
-  const today = new Date();
-  const startDate = new Date(
-    today.getTime() - 24 * 60 * 60 * 1000 * Number(fromDay)
-  );
+  const { fromDateTime } = req.query;
+
+  if (typeof fromDateTime !== "string") {
+    return badRequestResponse(res, "startDateRequired");
+  }
+
+  // console.log("FROMDATE", fromDay);
+
+  // const today = new Date();
+
+  // const startDate = new Date(
+  //   today.getTime() - 24 * 60 * 60 * 1000 * Number(fromDay)
+  // );
+
+  let startDate;
+
+  if (fromDateTime) {
+    startDate = new Date(fromDateTime);
+  }
+
+  if (!fromDateTime) {
+    const today = new Date();
+
+    startDate = new Date(today.getTime() - 24 * 60 * 60 * 1000 * 7);
+  }
   try {
     const reports = await prisma.report.findMany({
       where: {

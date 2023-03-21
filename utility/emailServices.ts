@@ -24,9 +24,10 @@ const transporter = nodemailer.createTransport(emailConfig);
 async function sendEmail(mailOptions: EmailType) {
   transporter.sendMail(mailOptions, (err, info) => {
     if (err) {
-      return console.log(err);
+      console.log(err.message);
+      return false;
     }
-    console.log("Message sent: %s", info.messageId);
+    console.log("Email sent: %s", info.response);
   });
 }
 

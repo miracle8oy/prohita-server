@@ -28,12 +28,24 @@ model Master {
   files     File[]
 }
 
+model Client {
+  id           Int      @id @default(autoincrement())
+  clientName   String   @unique
+  firstEmail   String
+  secondEmail  String?
+  firstPhone   String
+  secondPhone  String?
+  address      String
+  businessType String
+  status       Boolean  @default(true)
+  files        File[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model File {
   id              Int      @id @default(autoincrement())
-  clientName      String
-  email           String
-  phone           String
-  address         String
+  fileName        String
   fileURL         String
   publishDate     DateTime
   expiredDate     DateTime
@@ -41,6 +53,8 @@ model File {
   reminderBody    String
   Master          Master?  @relation(fields: [masterId], references: [id])
   masterId        Int?
+  Client          Client?  @relation(fields: [clientId], references: [id])
+  clientId        Int?
 }
 
 model Report {

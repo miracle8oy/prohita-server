@@ -248,6 +248,7 @@ export const getAllFile = async (
             Client: {
               clientName: {
                 contains: keyword,
+                mode: "insensitive",
               },
             },
           },
@@ -284,6 +285,7 @@ export const getAllFile = async (
             Client: {
               clientName: {
                 contains: keyword,
+                mode: "insensitive",
               },
             },
           },

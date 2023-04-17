@@ -15,7 +15,7 @@ const emailConfig = {
     pass: SMTP_PASS,
   },
   tls: {
-    rejectUnauthorized: STATUS === "development" ? false : true,
+    rejectUnauthorized: false,
   },
 };
 

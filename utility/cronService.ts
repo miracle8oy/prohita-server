@@ -8,7 +8,7 @@ const STATUS = process.env.STATUS;
 const prisma = new PrismaClient();
 
 function emailCron() {
-  schedule.scheduleJob("7 * * *", async function () {
+  schedule.scheduleJob("*", async function () {
     const today = new Date();
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
@@ -83,4 +83,4 @@ function testingEmailCron() {
   });
 }
 
-export default STATUS === "development" ? testingEmailCron : emailCron;
+export default emailCron;

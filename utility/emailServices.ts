@@ -5,17 +5,17 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = process.env.SMPT_PORT;
 const SMTP_USER = process.env.SMPT_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const STATUS = process.env.STATUS;
 
 const emailConfig = {
   host: SMTP_HOST,
+  name: "PROHITA SMTP",
   port: Number(SMTP_PORT),
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS,
   },
   tls: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: true,
   },
 };
 

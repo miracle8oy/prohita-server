@@ -128,6 +128,7 @@ export const getAllMasterClient = async (
         status: masterClientStatus,
         clientName: {
           contains: keyword,
+          mode: "insensitive",
         },
       },
       orderBy: [

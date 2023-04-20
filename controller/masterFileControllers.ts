@@ -96,6 +96,7 @@ export const getAllMasterFile = async (
         status: masterFileStatus,
         name: {
           contains: keyword,
+          mode: "insensitive",
         },
       },
       orderBy: [

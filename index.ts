@@ -21,11 +21,7 @@ app.use(express.static("files"));
 
 routes(app);
 
-emailCron();
-
-app.listen(PORT, () =>
-  console.log(
-    `
-🚀 Server ready at: PORT:` + PORT
-  )
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server ready at: PORT:` + PORT);
+  emailCron();
+});

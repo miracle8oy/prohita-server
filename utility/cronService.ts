@@ -8,7 +8,7 @@ const STATUS = process.env.STATUS;
 const prisma = new PrismaClient();
 
 function emailCron() {
-  schedule.scheduleJob("*", async function () {
+  schedule.scheduleJob({ hour: 15, minute: 0 }, async function () {
     const today = new Date();
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 

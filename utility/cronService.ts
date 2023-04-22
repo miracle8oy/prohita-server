@@ -83,4 +83,4 @@ function testingEmailCron() {
   });
 }
 
-export default emailCron;
+export default testingEmailCron;
